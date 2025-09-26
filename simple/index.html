@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OMS Simple - Простая система управления заказами</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Экран загрузки -->
+        <div id="loading" class="screen">
+            <h2>🚀 Загрузка OMS Simple...</h2>
+        </div>
+        
+        <!-- Экран авторизации -->
+        <div id="login" class="screen hidden">
+            <div class="login-form">
+                <h2>👤 Выберите пользователя</h2>
+                <div id="user-list"></div>
+                <button onclick="createDemoData()">🎯 Создать демо-данные</button>
+            </div>
+        </div>
+        
+        <!-- Основное приложение -->
+        <div id="main-app" class="screen hidden">
+            <!-- Шапка -->
+            <header class="header">
+                <div class="logo">📋 OMS Simple</div>
+                <nav class="nav">
+                    <button onclick="showSection('orders')" class="nav-btn">Заказы</button>
+                    <button onclick="showSection('processes')" class="nav-btn admin-only">Процессы</button>
+                    <button onclick="showSection('products')" class="nav-btn admin-only">Типы изделий</button>
+                    <button onclick="showSection('users')" class="nav-btn admin-only">Пользователи</button>
+                </nav>
+                <div class="user-info">
+                    <span id="current-user">👤 Пользователь</span>
+                    <button onclick="logout()">🚪 Выход</button>
+                </div>
+            </header>
+            
+            <!-- Основной контент -->
+            <main id="content" class="content">
+                <!-- Контент будет загружаться здесь -->
+            </main>
+        </div>
+    </div>
+    
+    <!-- Модальное окно -->
+    <div id="modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Заголовок</h3>
+                <button onclick="closeModal()" class="modal-close">✕</button>
+            </div>
+            <div id="modal-body" class="modal-body">
+                <!-- Содержимое модалки -->
+            </div>
+            <div id="modal-footer" class="modal-footer">
+                <!-- Кнопки -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Уведомления -->
+    <div id="notifications"></div>
+    
+    <!-- Подключаем скрипты -->
+    <script src="js/data.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/users.js"></script>
+    <script src="js/processes.js"></script>
+    <script src="js/products.js"></script>
+    <script src="js/orders.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

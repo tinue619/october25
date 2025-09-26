@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Тест Drag & Drop для ProductTypeDesignerUI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/product-type-designer.css">
+    <style>
+        body { margin: 20px; font-family: 'Inter', sans-serif; }
+        .test-info {
+            background: #f0f9ff;
+            border: 1px solid #3b82f6;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .test-status {
+            background: #f0fdf4;
+            border: 1px solid #22c55e;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            color: #15803d;
+        }
+        .console-log {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 16px;
+        }
+        .button-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="test-info">
+            <h1>🧪 Тест исправленного Drag & Drop</h1>
+            <p><strong>Цель:</strong> Проверить, что перетаскивание процессов и полей работает корректно после исправлений</p>
+            <p><strong>Исправления:</strong></p>
+            <ul>
+                <li>✅ Убрана задержка setTimeout()</li>
+                <li>✅ Исправлена привязка контекста (this)</li> 
+                <li>✅ Удаление старых обработчиков при перерендере</li>
+                <li>✅ Визуальные улучшения для drag & drop</li>
+            </ul>
+        </div>
+
+        <div class="test-status">
+            ✅ <strong>Статус:</strong> Готов к тестированию
+        </div>
+
+        <div class="button-row">
+            <button id="test-btn" class="btn btn-primary">
+                🎨 Открыть конструктор (с тестовыми данными)
+            </button>
+            <button id="clear-console-btn" class="btn btn-secondary">
+                🗑️ Очистить консоль
+            </button>
+        </div>
+
+        <div class="test-info">
+            <h3>🔍 Как тестировать:</h3>
+            <ol>
+                <li>Нажмите "Открыть конструктор"</li>
+                <li>Добавьте несколько процессов (кнопка "➕ Добавить процесс")</li>
+                <li>Попробуйте перетащить процессы за иконку <strong>⋮⋮</strong></li>
+                <li>Добавьте несколько полей (выберите тип и нажмите "➕ Добавить поле")</li>
+                <li>Попробуйте перетащить поля за иконку <strong>⋮⋮</strong></li>
+                <li>Следите за логами в консоли браузера и внизу страницы</li>
+            </ol>
+            
+            <h3>✅ Ожидаемое поведение:</h3>
+            <ul>
+                <li>Элементы должны перетаскиваться плавно</li>
+                <li>Должны появляться синие линии-индикаторы</li>
+                <li>Порядок должен изменяться сразу после отпускания</li>
+                <li>В консоли должны быть логи "🚀 Начало перетаскивания", "🔄 Перемещение", etc.</li>
+                <li>Никаких ошибок в консоли!</li>
+            </ul>
+        </div>
+
+        <div class="console-log" id="console-output">
+            Логи drag & drop появятся здесь...
+        </div>
+    </div>
+    
+    <!-- Подключаем все зависимости -->
+    <script src="js/constants/UserRole.js"></script>
+    <script src="js/constants/OrderStatus.js"></script>
+    <script src="js/constants/FieldTypes.js"></script>
+    
+    <script src="js/domain/entities/Entity.js"></script>
+    <script src="js/domain/value-objects/UserPermissions.js"></script>
+    <script src="js/domain/value-objects/ValidationResult.js"></script>
+    <script src="js/domain/value-objects/ProcessStep.js"></script>
+    <script src="js/domain/value-objects/ProcessFlow.js"></script>
+    <script src="js/domain/value-objects/FieldValue.js"></script>
+    <script src="js/domain/entities/CustomField.js"></script>
+    <script src="js/domain/entities/User.js"></script>
+    <script src="js/domain/entities/Process.js"></script>
+    <script src="js/domain/entities/ProductType.js"></script>
+    <script src="js/domain/entities/Order.js"></script>
+    
+    <script src="js/infrastructure/repositories/Repository.js"></script>
+    <script src="js/infrastructure/repositories/LocalStorageRepository.js"></script>
+    <script src="js/infrastructure/factories/RepositoryFactory.js"></script>
+    
+    <script src="js/application/builders/FormBuilder.js"></script>
+    <script src="js/ui/ProductTypeDesignerUI.js"></script>
+    
+    <script src="js/application/services/UserService.js"></script>
+    <script src="js/application/services/ProcessService.js"></script>
+    <script src="js/application/services/ProductTypeService.js"></script>
+    <script src="js/application/services/OrderService.js"></script>
+    <script src="js/application/services/AdminService.js"></script>
+    
+    <script src="js/application/ApplicationContext.js"></script>
+    
+    <script>
+        // Глобальные переменные
+        let app = null;
+        let designer = null;
+        
+        // Перехватываем console.log для отображения на странице
+        const originalConsoleLog = console.log;
+        const consoleOutput = document.getElementById('console-output');
+        
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            
+            // Отображаем только логи, связанные с drag & drop
+            const message = args.join(' ');
+            if (message.includes('🚀') || message.includes('🏁') || message.includes('🔄') || 
+                message.includes('🎣') || message.includes('📦') || message.includes('🎨') ||
+                message.includes('✅') || message.includes('⚠️') || message.includes('❌')) {
+                
+                const timestamp = new Date().toLocaleTimeString();
+                const logLine = document.createElement('div');
+                logLine.textContent = `[${timestamp}] ${message}`;
+                consoleOutput.appendChild(logLine);
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            }
+        };
+        
+        // Простые утилиты
+        function showError(message) {
+            console.log('❌ Ошибка: ' + message);
+            alert('Ошибка: ' + message);
+        }
+        
+        function showSuccess(message) {
+            console.log('✅ Успех: ' + message);
+            alert('Успех: ' + message);
+        }
+        
+        // Инициализация
+        async function init() {
+            try {
+                console.log('🏗️ Инициализация тестового окружения...');
+                
+                // Создаем контекст приложения
+                app = new ApplicationContext();
+                await app.initialize();
+                
+                // Создаем тестового администратора
+                await app.userService.createUser({
+                    name: 'Тест Админ',
+                    role: 'ADMINISTRATOR'
+                });
+                
+                // Авторизуем
+                await app.authenticate('Тест Админ');
+                
+                // Создаем богатый набор тестовых процессов
+                const testProcesses = [
+                    {
+                        name: '📥 Прием заказа',
+                        description: 'Первоначальный прием и регистрация заказа от клиента',
+                        order: 1
+                    },
+                    {
+                        name: '📋 Техническое задание',
+                        description: 'Составление подробного технического задания',
+                        order: 2
+                    },
+                    {
+                        name: '🛒 Подготовка материалов',
+                        description: 'Закупка и подготовка необходимых материалов и комплектующих',
+                        order: 3
+                    },
+                    {
+                        name: '⚙️ Производство',
+                        description: 'Основной процесс изготовления изделия',
+                        order: 4
+                    },
+                    {
+                        name: '🔍 Контроль качества',
+                        description: 'Проверка качества готового изделия',
+                        order: 5
+                    },
+                    {
+                        name: '📦 Упаковка',
+                        description: 'Упаковка готового изделия для доставки',
+                        order: 6
+                    },
+                    {
+                        name: '🚚 Доставка',
+                        description: 'Доставка готового изделия клиенту',
+                        order: 7
+                    },
+                    {
+                        name: '✅ Сдача работ',
+                        description: 'Финальная сдача работ и подписание акта',
+                        order: 8
+                    }
+                ];
+
+                for (const processData of testProcesses) {
+                    await app.processService.createProcess(processData);
+                }
+                
+                console.log('✅ Тестовое окружение готово');
+                console.log(`📊 Создано процессов: ${testProcesses.length}`);
+                
+                // Создаем конструктор
+                designer = new ProductTypeDesignerUI(app);
+                
+                // Настраиваем обработчики
+                designer.onProductTypeSaved = (productType) => {
+                    console.log('✅ Тип изделия сохранен:', productType.name);
+                    showSuccess(`Тип изделия "${productType.name}" успешно создан!`);
+                };
+                
+                designer.onProductTypeCancelled = () => {
+                    console.log('🙅 Создание отменено пользователем');
+                };
+                
+                // Привязываем к кнопке
+                document.getElementById('test-btn').onclick = () => {
+                    console.log('🎯 Открываем конструктор для тестирования drag & drop...');
+                    designer.show();
+                };
+                
+                // Кнопка очистки консоли
+                document.getElementById('clear-console-btn').onclick = () => {
+                    consoleOutput.innerHTML = 'Логи очищены...';
+                };
+                
+                console.log('🎯 Тест готов к запуску!');
+                
+            } catch (error) {
+                console.log('❌ Ошибка инициализации:', error.message);
+                showError('Ошибка инициализации: ' + error.message);
+            }
+        }
+        
+        // Запуск при загрузке
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

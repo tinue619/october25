@@ -1,0 +1,14 @@
+{
+  "name": "oms-roadmap-checker",
+  "version": "1.0.0",
+  "description": "Система автоматической проверки соответствия роадмапа реальности",
+  "scripts": {
+    "check-roadmap": "node scripts/roadmap-checker.js",
+    "install-hooks": "cp scripts/pre-commit-hook.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit",
+    "validate-project": "npm run check-roadmap && echo 'Проект прошел валидацию!'",
+    "update-roadmap": "npm run check-roadmap && echo 'Обновите роадмап на основе результатов проверки'"
+  },
+  "keywords": ["roadmap", "validation", "project-management"],
+  "author": "OMS Team",
+  "license": "MIT"
+}

@@ -1,0 +1,474 @@
+/* === СТИЛИ ДЛЯ КОНСТРУКТОРА ТИПОВ ИЗДЕЛИЙ === */
+
+/* === ДИАЛОГ ВЫБОРА ПРОЦЕССОВ === */
+
+.process-selection-dialog .modal-content {
+    max-width: 600px;
+    width: 90vw;
+}
+
+.process-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.process-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.process-item:hover {
+    border-color: #3b82f6;
+    background: #f1f5f9;
+}
+
+.process-info {
+    flex: 1;
+    margin-right: 16px;
+}
+
+.process-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: #1e293b;
+    margin-bottom: 4px;
+}
+
+.process-description {
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+/* === DRAG & DROP ИНДИКАТОРЫ === */
+
+.process-step-item.drag-over-top {
+    border-top: 3px solid #3b82f6;
+    margin-top: 3px;
+    background: #eff6ff;
+    transform: translateY(-2px);
+}
+
+.process-step-item.drag-over-bottom {
+    border-bottom: 3px solid #3b82f6;
+    margin-bottom: 3px;
+    background: #eff6ff;
+    transform: translateY(2px);
+}
+
+.custom-field-item.drag-over-top {
+    border-top: 3px solid #3b82f6;
+    margin-top: 3px;
+    background: #eff6ff;
+    transform: translateY(-2px);
+}
+
+.custom-field-item.drag-over-bottom {
+    border-bottom: 3px solid #3b82f6;
+    margin-bottom: 3px;
+    background: #eff6ff;
+    transform: translateY(2px);
+}
+
+/* === СОСТОЯНИЕ ПЕРЕТАСКИВАНИЯ === */
+.process-step-item.dragging {
+    transform: rotate(3deg);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    background: #ffffff;
+    border-color: #3b82f6;
+}
+
+.custom-field-item.dragging {
+    transform: rotate(3deg);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    background: #ffffff;
+    border-color: #3b82f6;
+}
+
+/* === ОСНОВНЫЕ СТИЛИ === */
+
+.product-type-designer .modal-content {
+    max-width: 1200px;
+    width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.designer-modal {
+    font-size: 14px;
+}
+
+.designer-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 20px;
+}
+
+.designer-section {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.designer-section h3 {
+    margin: 0 0 16px 0;
+    color: #1e293b;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.field-type-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.field-type-selector select {
+    min-width: 200px;
+}
+
+/* === ПРОЦЕССЫ === */
+
+.sequence-container {
+    min-height: 100px;
+}
+
+.empty-sequence {
+    text-align: center;
+    padding: 40px;
+    color: #64748b;
+    font-style: italic;
+    border: 2px dashed #e2e8f0;
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.process-step-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+    cursor: grab;
+}
+
+.process-step-item:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.process-step-item:active {
+    cursor: grabbing;
+}
+
+.step-handle {
+    color: #94a3b8;
+    cursor: grab;
+    padding: 4px;
+    user-select: none;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+}
+
+.step-handle:hover {
+    color: #3b82f6;
+    background: #f1f5f9;
+}
+
+.step-handle:active {
+    cursor: grabbing;
+    color: #1d4ed8;
+    background: #e2e8f0;
+}
+
+.step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: #3b82f6;
+    color: white;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.step-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.step-name {
+    font-weight: 500;
+    color: #1e293b;
+}
+
+.step-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.step-remove {
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.step-remove:hover {
+    background: #dc2626;
+    transform: scale(1.1);
+}
+
+/* === НАСТРАИВАЕМЫЕ ПОЛЯ === */
+
+.fields-container {
+    min-height: 100px;
+}
+
+.empty-fields {
+    text-align: center;
+    padding: 40px;
+    color: #64748b;
+    font-style: italic;
+    border: 2px dashed #e2e8f0;
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.custom-field-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+    cursor: grab;
+}
+
+.custom-field-item:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.custom-field-item:active {
+    cursor: grabbing;
+}
+
+.field-handle {
+    color: #94a3b8;
+    cursor: grab;
+    padding: 4px;
+    user-select: none;
+}
+
+.field-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.field-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.field-name {
+    font-weight: 500;
+    color: #1e293b;
+}
+
+.field-meta {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.field-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-tiny {
+    padding: 4px 8px;
+    font-size: 12px;
+    min-height: 28px;
+    border-radius: 4px;
+}
+
+/* === ПРЕДПРОСМОТР === */
+
+.form-preview {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 20px;
+    min-height: 200px;
+}
+
+.preview-empty {
+    text-align: center;
+    padding: 40px;
+    color: #64748b;
+    font-style: italic;
+}
+
+.preview-form h4 {
+    margin: 0 0 20px 0;
+    color: #1e293b;
+    font-size: 16px;
+    font-weight: 600;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 8px;
+}
+
+.preview-form .form-group {
+    margin-bottom: 16px;
+}
+
+.preview-form .form-control {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.preview-note {
+    margin-top: 20px;
+    padding: 8px;
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #92400e;
+    text-align: center;
+}
+
+/* === ДИАЛОГ РЕДАКТИРОВАНИЯ ПОЛЯ === */
+
+.field-edit-dialog .modal-content {
+    max-width: 500px;
+    width: 90vw;
+}
+
+.field-edit-dialog .modal-body {
+    padding: 20px;
+}
+
+/* === HELP TEXT === */
+
+.help-text {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 8px;
+    padding: 8px;
+    background: #f8fafc;
+    border-radius: 4px;
+    border-left: 3px solid #3b82f6;
+}
+
+/* === CHECKBOX LABELS === */
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    margin: 0;
+}
+
+.checkbox-label input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+}
+
+/* === АДАПТИВНОСТЬ === */
+
+@media (max-width: 768px) {
+    .product-type-designer .modal-content {
+        width: 95vw;
+        max-height: 95vh;
+        margin: 8px;
+    }
+    
+    .designer-container {
+        padding: 8px;
+        gap: 16px;
+    }
+    
+    .designer-section {
+        padding: 12px;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .field-type-selector {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .field-type-selector select {
+        min-width: unset;
+    }
+    
+    .process-step-item,
+    .custom-field-item {
+        flex-wrap: wrap;
+    }
+    
+    .step-content,
+    .field-content {
+        min-width: 200px;
+    }
+}

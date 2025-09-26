@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OMS - Order Management System</title>
+    <link rel="icon" href="assets/logo-simple.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/product-type-designer.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Загрузка... -->
+        <div class="loading-screen">
+            <div class="loading-content">
+                <img src="assets/logo-simple.svg" alt="OMS" class="loading-logo">
+                <h2>Загрузка OMS...</h2>
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Подключаем константы -->
+    <script src="js/constants/UserRole.js"></script>
+    <script src="js/constants/OrderStatus.js"></script>
+    <script src="js/constants/FieldTypes.js"></script>
+    
+    <!-- Подключаем базовые сущности -->
+    <script src="js/domain/entities/Entity.js"></script>
+    <script src="js/domain/value-objects/UserPermissions.js"></script>
+    <script src="js/domain/value-objects/ValidationResult.js"></script>
+    <script src="js/domain/value-objects/ProcessStep.js"></script>
+    <script src="js/domain/value-objects/ProcessFlow.js"></script>
+    <script src="js/domain/value-objects/FieldValue.js"></script>
+    <script src="js/domain/entities/CustomField.js"></script>
+    <script src="js/domain/entities/User.js"></script>
+    <script src="js/domain/entities/Process.js"></script>
+    <script src="js/domain/entities/ProductType.js"></script>
+    <script src="js/domain/entities/Order.js"></script>
+    
+    <!-- Подключаем инфраструктуру -->
+    <script src="js/infrastructure/repositories/Repository.js"></script>
+    <script src="js/infrastructure/repositories/LocalStorageRepository.js"></script>
+    <script src="js/infrastructure/factories/RepositoryFactory.js"></script>
+    
+    <!-- Подключаем построители -->
+    <script src="js/application/builders/FormBuilder.js"></script>
+    
+    <!-- Подключаем UI компоненты -->
+    <script src="js/ui/ProductTypeDesignerUI.js"></script>
+    <script src="js/ui/OrderFormUI.js"></script>
+    
+    <!-- Подключаем сервисы -->
+    <script src="js/application/services/UserService.js"></script>
+    <script src="js/application/services/ProcessService.js"></script>
+    <script src="js/application/services/ProductTypeService.js"></script>
+    <script src="js/application/services/OrderService.js"></script>
+    <script src="js/application/services/AdminService.js"></script>
+    
+    <!-- Подключаем контекст приложения -->
+    <script src="js/application/ApplicationContext.js"></script>
+    
+    <!-- Подключаем точку входа -->
+    <script src="js/main.js"></script>
+    
+    <script>
+        console.log('🎯 Все скрипты загружены, ожидаем DOMContentLoaded...');
+    </script>
+</body>
+</html>
