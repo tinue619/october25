@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cabinet Editor v3</title>
+  <link rel="stylesheet" href="css/main.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.159.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="editor-panel panel active" id="editor-panel">
+    <div class="toolbar">
+      <h1>📐 2D План шкафа</h1>
+      <div class="mode-buttons">
+        <button class="mode-btn active" data-mode="shelf">➕ Полка</button>
+        <button class="mode-btn" data-mode="divider">➕ Разделитель</button>
+        <button class="mode-btn" data-mode="move">👆 Двигать</button>
+        <button class="mode-btn delete" data-mode="delete">🗑️ Удалить</button>
+      </div>
+      <div class="action-buttons">
+        <button class="action-btn" id="undo-btn" disabled>↶ Отменить</button>
+        <button class="action-btn" id="redo-btn" disabled>↷ Вернуть</button>
+      </div>
+      <button class="clear-btn">Очистить всё</button>
+    </div>
+    <div class="canvas-container">
+      <canvas id="editor-canvas"></canvas>
+    </div>
+    <div class="status">
+      <div id="status-text">Режим: Добавление полки</div>
+    </div>
+  </div>
+
+  <div class="viewer-panel panel" id="viewer-panel">
+    <div id="three-container"></div>
+    <div class="viewer-info">
+      <h2>🗄️ Шкаф</h2>
+      <div class="stat">
+        <label>Ширина:</label>
+        <span>1000 мм</span>
+      </div>
+      <div class="stat">
+        <label>Высота:</label>
+        <span>2000 мм</span>
+      </div>
+      <div class="stat">
+        <label>Глубина:</label>
+        <span>600 мм</span>
+      </div>
+      <div class="stat" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
+        <label>Полок:</label>
+        <span id="stat-shelves">0</span>
+      </div>
+      <div class="stat">
+        <label>Разделителей:</label>
+        <span id="stat-dividers">0</span>
+      </div>
+    </div>
+    <div class="saved-indicator" id="saved-indicator">✓ Сохранено</div>
+  </div>
+  
+  <div class="tabs-container">
+    <div class="tabs">
+      <button class="tab active" data-panel="editor-panel">
+        <span class="tab-icon">📐</span>
+        <span>Редактор</span>
+      </button>
+      <button class="tab" data-panel="viewer-panel">
+        <span class="tab-icon">👁️</span>
+        <span>3D Вид</span>
+      </button>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
