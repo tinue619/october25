@@ -11,6 +11,14 @@ export class App {
     this.panels = new Map();
     this.nextId = 0;
     
+    // Размеры шкафа (теперь динамические!)
+    this.cabinet = {
+      width: CONFIG.CABINET.WIDTH,
+      height: CONFIG.CABINET.HEIGHT,
+      depth: CONFIG.CABINET.DEPTH,
+      base: CONFIG.CABINET.BASE
+    };
+    
     // Взаимодействие
     this.interaction = {
       dragging: null,
@@ -39,6 +47,15 @@ export class App {
     
     // Таймеры
     this.saveTimer = null;
+  }
+  
+  // Получение внутренних размеров (динамический CALC)
+  getInnerDimensions() {
+    return {
+      innerWidth: this.cabinet.width - CONFIG.DSP * 2,
+      innerDepth: this.cabinet.depth - CONFIG.HDF,
+      workHeight: this.cabinet.height - this.cabinet.base - CONFIG.DSP
+    };
   }
   
   // ========== ИНИЦИАЛИЗАЦИЯ ==========
@@ -139,12 +156,12 @@ export class App {
     this.canvas.element.style.width = this.canvas.size + 'px';
     this.canvas.element.style.height = this.canvas.size + 'px';
     
-    const scaleX = this.canvas.size / CONFIG.CABINET.WIDTH;
-    const scaleY = this.canvas.size / CONFIG.CABINET.HEIGHT;
+    const scaleX = this.canvas.size / this.cabinet.width;
+    const scaleY = this.canvas.size / this.cabinet.height;
     this.canvas.scale = Math.min(scaleX, scaleY) * CONFIG.UI.SCALE_PADDING;
     
-    this.canvas.offset.x = (this.canvas.size - CONFIG.CABINET.WIDTH * this.canvas.scale) / 2;
-    this.canvas.offset.y = (this.canvas.size - CONFIG.CABINET.HEIGHT * this.canvas.scale) / 2;
+    this.canvas.offset.x = (this.canvas.size - this.cabinet.width * this.canvas.scale) / 2;
+    this.canvas.offset.y = (this.canvas.size - this.cabinet.height * this.canvas.scale) / 2;
     
     this.render2D();
   }
@@ -250,9 +267,9 @@ export class App {
     
     // Ограничения позиции
     if (isHorizontal) {
-      mainPos = Math.max(CONFIG.CABINET.BASE, Math.min(CONFIG.CABINET.HEIGHT - CONFIG.DSP, mainPos));
+      mainPos = Math.max(this.cabinet.base, Math.min(this.cabinet.height - CONFIG.DSP, mainPos));
     } else {
-      mainPos = Math.max(CONFIG.DSP + CONFIG.MIN_GAP, Math.min(CONFIG.CABINET.WIDTH - CONFIG.DSP - CONFIG.MIN_GAP, mainPos));
+      mainPos = Math.max(CONFIG.DSP + CONFIG.MIN_GAP, Math.min(this.cabinet.width - CONFIG.DSP - CONFIG.MIN_GAP, mainPos));
     }
     
     // Находим пересечения с перпендикулярными панелями
@@ -265,13 +282,13 @@ export class App {
     let bounds, connections = {};
     if (isHorizontal) {
       let startX = CONFIG.DSP;
-      let endX = CONFIG.CABINET.WIDTH - CONFIG.DSP;
+      let endX = this.cabinet.width - CONFIG.DSP;
       
       if (intersecting.length > 0) {
         const points = [
           { x: CONFIG.DSP, panel: null },
           ...intersecting.map(d => ({ x: d.position.x, panel: d })),
-          { x: CONFIG.CABINET.WIDTH - CONFIG.DSP, panel: null }
+          { x: this.cabinet.width - CONFIG.DSP, panel: null }
         ];
         
         for (let i = 0; i < points.length - 1; i++) {
@@ -292,14 +309,14 @@ export class App {
       
       bounds = { startX, endX };
     } else {
-      let startY = CONFIG.CABINET.BASE;
-      let endY = CONFIG.CABINET.HEIGHT - CONFIG.DSP;
+      let startY = this.cabinet.base;
+      let endY = this.cabinet.height - CONFIG.DSP;
       
       if (intersecting.length > 0) {
         const points = [
-          { y: CONFIG.CABINET.BASE, panel: null },
+          { y: this.cabinet.base, panel: null },
           ...intersecting.map(s => ({ y: s.position.y, panel: s })),
-          { y: CONFIG.CABINET.HEIGHT - CONFIG.DSP, panel: null }
+          { y: this.cabinet.height - CONFIG.DSP, panel: null }
         ];
         
         for (let i = 0; i < points.length - 1; i++) {
@@ -330,7 +347,7 @@ export class App {
     // Обновляем ребра
     if (isHorizontal) {
       // Добавлена полка - обновляем её ребра
-      panel.updateRibs(this.panels);
+      panel.updateRibs(this.panels, this.cabinet.width);
     } else {
       // Добавлен разделитель - обновляем ребра всех полок, которые он пересекает
       for (let p of this.panels.values()) {
@@ -339,7 +356,7 @@ export class App {
             p.bounds.endX >= panel.position.x &&
             panel.bounds.startY <= p.position.y &&
             panel.bounds.endY >= p.position.y) {
-          p.updateRibs(this.panels);
+          p.updateRibs(this.panels, this.cabinet.width);
         }
       }
     }
@@ -355,8 +372,8 @@ export class App {
     const newPos = panel.isHorizontal ? coords.y : coords.x;
     
     // Находим ограничения от других панелей того же типа
-    let min = panel.isHorizontal ? CONFIG.CABINET.BASE + CONFIG.MIN_GAP : CONFIG.DSP + CONFIG.MIN_GAP;
-    let max = panel.isHorizontal ? CONFIG.CABINET.HEIGHT - CONFIG.DSP - CONFIG.MIN_GAP : CONFIG.CABINET.WIDTH - CONFIG.DSP - CONFIG.MIN_GAP;
+    let min = panel.isHorizontal ? this.cabinet.base + CONFIG.MIN_GAP : CONFIG.DSP + CONFIG.MIN_GAP;
+    let max = panel.isHorizontal ? this.cabinet.height - CONFIG.DSP - CONFIG.MIN_GAP : this.cabinet.width - CONFIG.DSP - CONFIG.MIN_GAP;
     
     for (let other of this.panels.values()) {
       if (other === panel || other.type !== panel.type) continue;
@@ -404,7 +421,7 @@ export class App {
       }
       
       // Обновляем ребра перемещенной полки
-      movedPanel.updateRibs(this.panels);
+      movedPanel.updateRibs(this.panels, this.cabinet.width);
     } else {
       // Перемещен разделитель - обновляем полки, которые на нем заканчиваются
       for (let panel of this.panels.values()) {
@@ -431,7 +448,7 @@ export class App {
       
       // Обновляем ребра только затронутых полок
       for (let shelf of affectedShelves) {
-        shelf.updateRibs(this.panels);
+        shelf.updateRibs(this.panels, this.cabinet.width);
       }
     }
   }
@@ -493,7 +510,7 @@ export class App {
     // Обновляем ребра для всех полок
     for (let panel of this.panels.values()) {
       if (panel.isHorizontal) {
-        panel.updateRibs(this.panels);
+        panel.updateRibs(this.panels, this.cabinet.width);
       }
     }
     
@@ -517,7 +534,7 @@ export class App {
       const points = [
         { x: CONFIG.DSP, panel: null },
         ...dividers.map(d => ({ x: d.position.x, panel: d })),
-        { x: CONFIG.CABINET.WIDTH - CONFIG.DSP, panel: null }
+        { x: this.cabinet.width - CONFIG.DSP, panel: null }
       ];
       
       // Находим сегмент по центру полки
@@ -532,7 +549,7 @@ export class App {
           panel.bounds.endX = segmentEnd;
           panel.connections.left = points[i].panel;
           panel.connections.right = points[i + 1].panel;
-          panel.updateRibs(this.panels);
+          panel.updateRibs(this.panels, this.cabinet.width);
           break;
         }
       }
@@ -546,9 +563,9 @@ export class App {
       
       // Создаем массив точек (дно + полки + крыша)
       const points = [
-        { y: CONFIG.CABINET.BASE, panel: null },
+        { y: this.cabinet.base, panel: null },
         ...shelves.map(s => ({ y: s.position.y, panel: s })),
-        { y: CONFIG.CABINET.HEIGHT - CONFIG.DSP, panel: null }
+        { y: this.cabinet.height - CONFIG.DSP, panel: null }
       ];
       
       // Находим сегмент по центру разделителя
@@ -666,7 +683,7 @@ export class App {
     // Обновляем ребра для всех полок
     for (let panel of this.panels.values()) {
       if (panel.isHorizontal) {
-        panel.updateRibs(this.panels);
+        panel.updateRibs(this.panels, this.cabinet.width);
       }
     }
     
@@ -735,7 +752,7 @@ export class App {
         // Обновляем ребра для всех загруженных полок
         for (let panel of this.panels.values()) {
           if (panel.isHorizontal) {
-            panel.updateRibs(this.panels);
+            panel.updateRibs(this.panels, this.cabinet.width);
           }
         }
       }
@@ -769,6 +786,7 @@ export class App {
   render2D() {
     const ctx = this.canvas.ctx;
     const { size, scale, offset } = this.canvas;
+    const calc = this.getInnerDimensions();
     
     ctx.clearRect(0, 0, size, size);
     ctx.save();
@@ -780,31 +798,31 @@ export class App {
     ctx.fillStyle = '#fafafa';
     ctx.fillRect(
       CONFIG.DSP * scale,
-      toY(CONFIG.CABINET.HEIGHT - CONFIG.DSP),
-      CALC.innerWidth * scale,
-      CALC.workHeight * scale
+      toY(this.cabinet.height - CONFIG.DSP),
+      calc.innerWidth * scale,
+      calc.workHeight * scale
     );
     
     // Корпус
     ctx.fillStyle = '#8B6633';
     
     // Боковины
-    ctx.fillRect(0, toY(CONFIG.CABINET.HEIGHT), CONFIG.DSP * scale, CONFIG.CABINET.HEIGHT * scale);
-    ctx.fillRect((CONFIG.CABINET.WIDTH - CONFIG.DSP) * scale, toY(CONFIG.CABINET.HEIGHT), CONFIG.DSP * scale, CONFIG.CABINET.HEIGHT * scale);
+    ctx.fillRect(0, toY(this.cabinet.height), CONFIG.DSP * scale, this.cabinet.height * scale);
+    ctx.fillRect((this.cabinet.width - CONFIG.DSP) * scale, toY(this.cabinet.height), CONFIG.DSP * scale, this.cabinet.height * scale);
     
     // Дно
-    ctx.fillRect(CONFIG.DSP * scale, toY(CONFIG.CABINET.BASE), CALC.innerWidth * scale, CONFIG.DSP * scale);
+    ctx.fillRect(CONFIG.DSP * scale, toY(this.cabinet.base), calc.innerWidth * scale, CONFIG.DSP * scale);
     
     // Крыша
-    ctx.fillRect(CONFIG.DSP * scale, toY(CONFIG.CABINET.HEIGHT), CALC.innerWidth * scale, CONFIG.DSP * scale);
+    ctx.fillRect(CONFIG.DSP * scale, toY(this.cabinet.height), calc.innerWidth * scale, CONFIG.DSP * scale);
     
     // Цоколь
     ctx.fillStyle = '#654321';
     ctx.fillRect(
       CONFIG.DSP * scale,
-      toY(CONFIG.CABINET.BASE - CONFIG.DSP),
-      CALC.innerWidth * scale,
-      (CONFIG.CABINET.BASE - CONFIG.DSP) * scale
+      toY(this.cabinet.base - CONFIG.DSP),
+      calc.innerWidth * scale,
+      (this.cabinet.base - CONFIG.DSP) * scale
     );
     
     // Панели
@@ -866,7 +884,7 @@ export class App {
     if (!this.viewer3D) return;
     
     let mesh = this.mesh3D.get(panel.id);
-    const geometry = panel.getGeometry();
+    const geometry = panel.getGeometry(this.cabinet.depth);
     
     if (!mesh) {
       const geom = new THREE.BoxGeometry(geometry.width, geometry.height, geometry.depth);
@@ -881,7 +899,7 @@ export class App {
       }
     }
     
-    mesh.position.copy(panel.get3DPosition());
+    mesh.position.copy(panel.get3DPosition(this.cabinet.width, this.cabinet.depth));
     
     // Обрабатываем ребра жесткости для полок
     if (panel.isHorizontal) {
@@ -913,9 +931,9 @@ export class App {
         // Y: прижато к низу полки (без зазора)
         // Z: у задней стенки (cabDepth - hdfThick)
         ribMesh.position.set(
-          (rib.startX + rib.endX) / 2 - CONFIG.CABINET.WIDTH / 2,
+          (rib.startX + rib.endX) / 2 - this.cabinet.width / 2,
           panel.position.y - CONFIG.RIB.HEIGHT/2,
-          -CONFIG.CABINET.DEPTH/2 + CONFIG.HDF + CONFIG.RIB.DEPTH/2
+          -this.cabinet.depth/2 + CONFIG.HDF + CONFIG.RIB.DEPTH/2
         );
         
         this.viewer3D.dynamicGroup.add(ribMesh);

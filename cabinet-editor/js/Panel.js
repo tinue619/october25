@@ -36,7 +36,7 @@ export class Panel {
   
   get size() { return this.end - this.start; }
   
-  updateRibs(panels) {
+  updateRibs(panels, cabinetWidth) {
     if (!this.isHorizontal || !panels) return;
     
     this.ribs = [];
@@ -46,7 +46,7 @@ export class Panel {
     
     // Добавляем боковины
     verticals.push(CONFIG.DSP);
-    verticals.push(CONFIG.CABINET.WIDTH - CONFIG.DSP);
+    verticals.push(cabinetWidth - CONFIG.DSP);
     
     // Добавляем разделители, которые проходят через эту полку
     for (let panel of panels.values()) {
@@ -82,8 +82,8 @@ export class Panel {
     return position >= this.start && position <= this.end;
   }
 
-  getGeometry() {
-    const innerDepth = CONFIG.CABINET.DEPTH - CONFIG.HDF;
+  getGeometry(cabinetDepth) {
+    const innerDepth = cabinetDepth - CONFIG.HDF;
     
     if (this.isHorizontal) {
       return { 
@@ -100,18 +100,18 @@ export class Panel {
     }
   }
 
-  get3DPosition() {
-    const innerDepth = CONFIG.CABINET.DEPTH - CONFIG.HDF;
+  get3DPosition(cabinetWidth, cabinetDepth) {
+    const innerDepth = cabinetDepth - CONFIG.HDF;
     
     if (this.isHorizontal) {
       return new THREE.Vector3(
-        this.start + this.size/2 - CONFIG.CABINET.WIDTH/2,
+        this.start + this.size/2 - cabinetWidth/2,
         this.position.y + CONFIG.DSP/2,  // Смещаем на половину толщины вверх
         CONFIG.HDF/2  // Панели смещены вперед на толщину ХДФ
       );
     } else {
       return new THREE.Vector3(
-        this.position.x - CONFIG.CABINET.WIDTH/2 + CONFIG.DSP/2,
+        this.position.x - cabinetWidth/2 + CONFIG.DSP/2,
         this.start + this.size/2,
         CONFIG.HDF/2  // Панели смещены вперед на толщину ХДФ
       );
