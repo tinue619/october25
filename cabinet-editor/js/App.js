@@ -453,9 +453,14 @@ export class App {
     let minX, maxX;
     
     if (isLeftSide) {
-      // Левая боковина - ищем самую левую вертикаль
-      minX = CONFIG.DSP/2;  // Минимальное положение
+      // Левая боковина - ограничения по ширине шкафа
+      // Чем меньше newX, тем шире шкаф (расширяемся влево)
+      // Чем больше newX, тем уже шкаф (сужаемся)
       
+      // Минимальное положение левой боковины (максимальное расширение)
+      minX = this.cabinet.width - MAX_CABINET_WIDTH + CONFIG.DSP/2;
+      
+      // Максимальное положение левой боковины (минимальное сужение)
       // Находим самый левый разделитель
       let leftmostDivider = null;
       for (let panel of this.panels.values()) {
@@ -466,10 +471,11 @@ export class App {
         }
       }
       
-      // Максимум - 150мм до ближайшего разделителя или правой боковины
       if (leftmostDivider) {
+        // Не можем сдвинуть боковину ближе чем на 150мм к разделителю
         maxX = leftmostDivider.position.x - CONFIG.MIN_GAP - CONFIG.DSP/2;
       } else {
+        // Максимальное сужение - минимальная ширина 400мм
         maxX = this.cabinet.width - MIN_CABINET_WIDTH + CONFIG.DSP/2;
       }
     } else {
@@ -500,10 +506,10 @@ export class App {
     // Обновляем размеры шкафа
     const oldWidth = this.cabinet.width;
     if (isLeftSide) {
-      // При движении левой боковины - расширяем/сужаем шкаф влево
-      // Правая боковина остается на месте
-      const oldLeftX = CONFIG.DSP/2;
-      const shift = oldLeftX - newX;  // Положительный shift = расширение влево
+      // Левая боковина всегда на CONFIG.DSP/2
+      // newX < CONFIG.DSP/2 - тянем влево (расширяем)
+      // newX > CONFIG.DSP/2 - тянем вправо (сужаем)
+      const shift = CONFIG.DSP/2 - newX;
       this.cabinet.width = oldWidth + shift;
       
       // Сдвигаем все панели вправо (компенсируем сдвиг системы координат)
@@ -548,6 +554,9 @@ export class App {
     }
     
     this.renderAll3D();
+    
+    // Обновляем информацию о размерах шкафа
+    this.updateCabinetInfo();
   }
   
   // ========== ОБНОВЛЕНИЕ СВЯЗАННЫХ ПАНЕЛЕЙ ==========
@@ -770,6 +779,12 @@ export class App {
   // ========== ИСТОРИЯ ==========
   saveHistory() {
     const state = {
+      cabinet: {
+        width: this.cabinet.width,
+        height: this.cabinet.height,
+        depth: this.cabinet.depth,
+        base: this.cabinet.base
+      },
       panels: Array.from(this.panels.values()).map(p => ({
         type: p.type,
         id: p.id,
@@ -808,6 +823,23 @@ export class App {
   }
   
   restoreState(state) {
+    // Восстанавливаем размеры шкафа, если они есть в состоянии
+    if (state.cabinet) {
+      this.cabinet.width = state.cabinet.width;
+      this.cabinet.height = state.cabinet.height;
+      this.cabinet.depth = state.cabinet.depth;
+      this.cabinet.base = state.cabinet.base;
+      this.updateCalc();
+      
+      // Обновляем canvas с новыми размерами
+      this.updateCanvas();
+      
+      // Перестраиваем 3D корпус
+      if (this.viewer3D) {
+        this.viewer3D.rebuildCabinet();
+      }
+    }
+    
     // Очищаем текущие панели
     for (let panel of this.panels.values()) {
       this.removeMesh(panel);
@@ -855,6 +887,12 @@ export class App {
   saveToStorage() {
     try {
       localStorage.setItem('cabinetDesignV3', JSON.stringify({
+        cabinet: {
+          width: this.cabinet.width,
+          height: this.cabinet.height,
+          depth: this.cabinet.depth,
+          base: this.cabinet.base
+        },
         panels: Array.from(this.panels.values()).map(p => ({
           type: p.type,
           id: p.id,
@@ -874,6 +912,20 @@ export class App {
   loadState() {
     try {
       const data = JSON.parse(localStorage.getItem('cabinetDesignV3') || '{}');
+      
+      // Загружаем размеры шкафа, если они есть
+      if (data.cabinet) {
+        this.cabinet.width = data.cabinet.width;
+        this.cabinet.height = data.cabinet.height;
+        this.cabinet.depth = data.cabinet.depth;
+        this.cabinet.base = data.cabinet.base;
+        this.updateCalc();
+        
+        // Обновляем 3D корпус если он уже инициализирован
+        if (this.viewer3D) {
+          this.viewer3D.rebuildCabinet();
+        }
+      }
       
       if (data.panels) {
         // Сначала создаем все панели без connections
@@ -928,6 +980,15 @@ export class App {
     
     document.getElementById('stat-shelves').textContent = shelves.length;
     document.getElementById('stat-dividers').textContent = dividers.length;
+    
+    // Обновляем размеры шкафа
+    this.updateCabinetInfo();
+  }
+  
+  updateCabinetInfo() {
+    document.getElementById('stat-width').textContent = `${Math.round(this.cabinet.width)} мм`;
+    document.getElementById('stat-height').textContent = `${Math.round(this.cabinet.height)} мм`;
+    document.getElementById('stat-depth').textContent = `${Math.round(this.cabinet.depth)} мм`;
   }
   
   // ========== 2D ОТРИСОВКА ==========
