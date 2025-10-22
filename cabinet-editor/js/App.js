@@ -252,6 +252,36 @@ export class App {
   }
   
   findPanelAt(coords) {
+    // Сначала проверяем боковины (они приоритетнее обычных панелей)
+    // Левая боковина
+    if (Math.abs(coords.x - CONFIG.DSP/2) < CONFIG.UI.SNAP && 
+        coords.y >= 0 && coords.y <= this.cabinet.height) {
+      return {
+        type: 'side',
+        id: 'left-side',
+        position: { x: CONFIG.DSP/2 },
+        isHorizontal: false,
+        mainPosition: CONFIG.DSP/2,
+        start: 0,
+        end: this.cabinet.height
+      };
+    }
+    
+    // Правая боковина
+    if (Math.abs(coords.x - (this.cabinet.width - CONFIG.DSP/2)) < CONFIG.UI.SNAP && 
+        coords.y >= 0 && coords.y <= this.cabinet.height) {
+      return {
+        type: 'side',
+        id: 'right-side',
+        position: { x: this.cabinet.width - CONFIG.DSP/2 },
+        isHorizontal: false,
+        mainPosition: this.cabinet.width - CONFIG.DSP/2,
+        start: 0,
+        end: this.cabinet.height
+      };
+    }
+    
+    // Затем проверяем обычные панели
     for (let panel of this.panels.values()) {
       const axis = panel.isHorizontal ? 'y' : 'x';
       const pos = coords[axis];
@@ -372,6 +402,12 @@ export class App {
   
   // ========== ПЕРЕМЕЩЕНИЕ ПАНЕЛЕЙ ==========
   movePanel(panel, coords) {
+    // Особая обработка для боковин
+    if (panel.type === 'side') {
+      this.moveSide(panel, coords.x);
+      return;
+    }
+    
     const newPos = panel.isHorizontal ? coords.y : coords.x;
     
     // Находим ограничения от других панелей того же типа
@@ -402,6 +438,115 @@ export class App {
     this.updateConnectedPanels(panel);
     
     this.render2D();
+    this.renderAll3D();
+  }
+  
+  // ========== ПЕРЕМЕЩЕНИЕ БОКОВИН ==========
+  moveSide(side, newX) {
+    const isLeftSide = side.id === 'left-side';
+    
+    // Минимальная и максимальная ширина шкафа
+    const MIN_CABINET_WIDTH = 400;
+    const MAX_CABINET_WIDTH = 3000;
+    
+    // Находим ограничения от вертикальных панелей
+    let minX, maxX;
+    
+    if (isLeftSide) {
+      // Левая боковина - ищем самую левую вертикаль
+      minX = CONFIG.DSP/2;  // Минимальное положение
+      
+      // Находим самый левый разделитель
+      let leftmostDivider = null;
+      for (let panel of this.panels.values()) {
+        if (!panel.isHorizontal) {
+          if (!leftmostDivider || panel.position.x < leftmostDivider.position.x) {
+            leftmostDivider = panel;
+          }
+        }
+      }
+      
+      // Максимум - 150мм до ближайшего разделителя или правой боковины
+      if (leftmostDivider) {
+        maxX = leftmostDivider.position.x - CONFIG.MIN_GAP - CONFIG.DSP/2;
+      } else {
+        maxX = this.cabinet.width - MIN_CABINET_WIDTH + CONFIG.DSP/2;
+      }
+    } else {
+      // Правая боковина - ищем самую правую вертикаль
+      maxX = MAX_CABINET_WIDTH - CONFIG.DSP/2;  // Максимальное положение
+      
+      // Находим самый правый разделитель
+      let rightmostDivider = null;
+      for (let panel of this.panels.values()) {
+        if (!panel.isHorizontal) {
+          if (!rightmostDivider || panel.position.x > rightmostDivider.position.x) {
+            rightmostDivider = panel;
+          }
+        }
+      }
+      
+      // Минимум - 150мм от ближайшего разделителя или левой боковины
+      if (rightmostDivider) {
+        minX = rightmostDivider.position.x + CONFIG.MIN_GAP + CONFIG.DSP/2;
+      } else {
+        minX = MIN_CABINET_WIDTH - CONFIG.DSP/2;
+      }
+    }
+    
+    // Ограничиваем новое положение
+    newX = Math.max(minX, Math.min(maxX, newX));
+    
+    // Обновляем размеры шкафа
+    const oldWidth = this.cabinet.width;
+    if (isLeftSide) {
+      // При движении левой боковины - расширяем/сужаем шкаф влево
+      // Правая боковина остается на месте
+      const oldLeftX = CONFIG.DSP/2;
+      const shift = oldLeftX - newX;  // Положительный shift = расширение влево
+      this.cabinet.width = oldWidth + shift;
+      
+      // Сдвигаем все панели вправо (компенсируем сдвиг системы координат)
+      for (let panel of this.panels.values()) {
+        if (!panel.isHorizontal) {
+          panel.position.x += shift;
+        } else {
+          panel.bounds.startX = Math.max(CONFIG.DSP, panel.bounds.startX + shift);
+          panel.bounds.endX = Math.min(this.cabinet.width - CONFIG.DSP, panel.bounds.endX + shift);
+        }
+      }
+    } else {
+      // При движении правой боковины - меняется только ширина
+      this.cabinet.width = newX + CONFIG.DSP/2;
+    }
+    
+    // Обновляем вычисляемые размеры
+    this.updateCalc();
+    
+    // Обновляем полки которые упираются в боковины
+    for (let panel of this.panels.values()) {
+      if (panel.isHorizontal) {
+        // Если полка упирается в боковины, обновляем ее границы
+        if (!panel.connections.left) {
+          panel.bounds.startX = CONFIG.DSP;
+        }
+        if (!panel.connections.right) {
+          panel.bounds.endX = this.cabinet.width - CONFIG.DSP;
+        }
+        // Обновляем ребра жесткости
+        panel.updateRibs(this.panels, this.cabinet.width);
+      }
+    }
+    
+    // Обновляем отображение
+    this.updateCanvas();
+    this.render2D();
+    
+    // Обновляем 3D корпус
+    if (this.viewer3D) {
+      this.viewer3D.rebuildCabinet();
+    }
+    
     this.renderAll3D();
   }
   
@@ -808,11 +953,18 @@ export class App {
     // Корпус
     ctx.fillStyle = '#8B6633';
     
-    // Боковины
+    // Боковины (подсвечиваем если двигаем)
+    const isLeftSideActive = this.interaction.dragging && this.interaction.dragging.id === 'left-side';
+    const isRightSideActive = this.interaction.dragging && this.interaction.dragging.id === 'right-side';
+    
+    ctx.fillStyle = isLeftSideActive ? CONFIG.COLORS.ACTIVE : '#8B6633';
     ctx.fillRect(0, toY(this.cabinet.height), CONFIG.DSP * scale, this.cabinet.height * scale);
+    
+    ctx.fillStyle = isRightSideActive ? CONFIG.COLORS.ACTIVE : '#8B6633';
     ctx.fillRect((this.cabinet.width - CONFIG.DSP) * scale, toY(this.cabinet.height), CONFIG.DSP * scale, this.cabinet.height * scale);
     
     // Дно
+    ctx.fillStyle = '#8B6633';
     ctx.fillRect(CONFIG.DSP * scale, toY(this.cabinet.base), this.calc.innerWidth * scale, CONFIG.DSP * scale);
     
     // Крыша

@@ -42,7 +42,7 @@ export class Viewer3D {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
-    this.controls.target.set(0, CONFIG.CABINET.HEIGHT / 2, 0);
+    this.controls.target.set(0, this.app.cabinet.height / 2, 0);
     
     // Материалы
     this.materials = {
@@ -101,60 +101,85 @@ export class Viewer3D {
   }
   
   createCabinet() {
-    const cabinet = new THREE.Group();
+    // Удаляем старый корпус, если есть
+    if (this.cabinetGroup) {
+      this.scene.remove(this.cabinetGroup);
+      // Очищаем геометрию и материалы
+      this.cabinetGroup.traverse((child) => {
+        if (child.geometry) child.geometry.dispose();
+      });
+    }
+    
+    this.cabinetGroup = new THREE.Group();
+    const cabinet = this.cabinetGroup;
+    
+    // Используем динамические размеры из app.cabinet
+    const width = this.app.cabinet.width;
+    const height = this.app.cabinet.height;
+    const depth = this.app.cabinet.depth;
+    const base = this.app.cabinet.base;
+    const innerWidth = width - CONFIG.DSP * 2;
+    const innerDepth = depth - CONFIG.HDF;
     
     // Боковины
-    const sideGeom = new THREE.BoxGeometry(CONFIG.DSP, CONFIG.CABINET.HEIGHT, CALC.innerDepth);
+    const sideGeom = new THREE.BoxGeometry(CONFIG.DSP, height, innerDepth);
     
     const leftSide = new THREE.Mesh(sideGeom, this.materials.dsp);
-    leftSide.position.set(-CONFIG.CABINET.WIDTH/2 + CONFIG.DSP/2, CONFIG.CABINET.HEIGHT/2, CONFIG.HDF/2);
+    leftSide.position.set(-width/2 + CONFIG.DSP/2, height/2, CONFIG.HDF/2);
     leftSide.castShadow = true;
     leftSide.receiveShadow = true;
     cabinet.add(leftSide);
     
     const rightSide = new THREE.Mesh(sideGeom, this.materials.dsp);
-    rightSide.position.set(CONFIG.CABINET.WIDTH/2 - CONFIG.DSP/2, CONFIG.CABINET.HEIGHT/2, CONFIG.HDF/2);
+    rightSide.position.set(width/2 - CONFIG.DSP/2, height/2, CONFIG.HDF/2);
     rightSide.castShadow = true;
     rightSide.receiveShadow = true;
     cabinet.add(rightSide);
     
     // Дно
-    const bottomGeom = new THREE.BoxGeometry(CALC.innerWidth, CONFIG.DSP, CALC.innerDepth);
+    const bottomGeom = new THREE.BoxGeometry(innerWidth, CONFIG.DSP, innerDepth);
     const bottom = new THREE.Mesh(bottomGeom, this.materials.dsp);
-    bottom.position.set(0, CONFIG.CABINET.BASE - CONFIG.DSP/2, CONFIG.HDF/2);
+    bottom.position.set(0, base - CONFIG.DSP/2, CONFIG.HDF/2);
     bottom.castShadow = true;
     bottom.receiveShadow = true;
     cabinet.add(bottom);
     
     // Крыша
     const top = new THREE.Mesh(bottomGeom, this.materials.dsp);
-    top.position.set(0, CONFIG.CABINET.HEIGHT - CONFIG.DSP/2, CONFIG.HDF/2);
+    top.position.set(0, height - CONFIG.DSP/2, CONFIG.HDF/2);
     top.castShadow = true;
     top.receiveShadow = true;
     cabinet.add(top);
     
     // Цоколь
     const plinthGeom = new THREE.BoxGeometry(
-      CALC.innerWidth,
-      CONFIG.CABINET.BASE - CONFIG.DSP,
-      CALC.innerDepth
+      innerWidth,
+      base - CONFIG.DSP,
+      innerDepth
     );
     const plinth = new THREE.Mesh(plinthGeom, this.materials.plinth);
-    plinth.position.set(0, (CONFIG.CABINET.BASE - CONFIG.DSP)/2, CONFIG.HDF/2);
+    plinth.position.set(0, (base - CONFIG.DSP)/2, CONFIG.HDF/2);
     plinth.castShadow = true;
     cabinet.add(plinth);
     
     // Задняя стенка
     const backGeom = new THREE.BoxGeometry(
-      CONFIG.CABINET.WIDTH - 2,
-      CONFIG.CABINET.HEIGHT - 2,
+      width - 2,
+      height - 2,
       CONFIG.HDF
     );
     const back = new THREE.Mesh(backGeom, this.materials.hdf);
-    back.position.set(0, CONFIG.CABINET.HEIGHT/2, -CONFIG.CABINET.DEPTH/2 + CONFIG.HDF/2);
+    back.position.set(0, height/2, -depth/2 + CONFIG.HDF/2);
     cabinet.add(back);
     
     this.scene.add(cabinet);
+  }
+  
+  // Метод для перестроения корпуса при изменении размеров
+  rebuildCabinet() {
+    this.createCabinet();
+    // Обновляем точку фокуса камеры
+    this.controls.target.set(0, this.app.cabinet.height / 2, 0);
   }
   
   animate() {

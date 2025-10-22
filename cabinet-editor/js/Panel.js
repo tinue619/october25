@@ -11,10 +11,8 @@ export class Panel {
     this.connections = connections;
     this.ribs = [];  // Массив ребер жесткости для полок [{startX, endX}, ...]
     
-    // Проверяем необходимость ребер при создании
-    if (this.isHorizontal) {
-      this.updateRibs();
-    }
+    // Не вызываем updateRibs в конструкторе,
+    // так как еще нет доступа к panels и cabinetWidth
   }
 
   get isHorizontal() { return this.type === 'shelf'; }
