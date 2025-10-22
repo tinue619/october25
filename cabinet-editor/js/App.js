@@ -6,18 +6,21 @@ import { Viewer3D } from './Viewer3D.js';
 // ========== ГЛАВНОЕ ПРИЛОЖЕНИЕ ==========
 export class App {
   constructor() {
-    // Состояние
-    this.mode = 'shelf';
-    this.panels = new Map();
-    this.nextId = 0;
-    
-    // Размеры шкафа (теперь динамические!)
+    // Динамические размеры шкафа (вместо жестких CONFIG)
     this.cabinet = {
       width: CONFIG.CABINET.WIDTH,
       height: CONFIG.CABINET.HEIGHT,
       depth: CONFIG.CABINET.DEPTH,
       base: CONFIG.CABINET.BASE
     };
+    
+    // Вычисляемые размеры (аналог CALC)
+    this.updateCalc();
+    
+    // Состояние
+    this.mode = 'shelf';
+    this.panels = new Map();
+    this.nextId = 0;
     
     // Взаимодействие
     this.interaction = {
@@ -49,9 +52,9 @@ export class App {
     this.saveTimer = null;
   }
   
-  // Получение внутренних размеров (динамический CALC)
-  getInnerDimensions() {
-    return {
+  // Обновляем вычисляемые размеры
+  updateCalc() {
+    this.calc = {
       innerWidth: this.cabinet.width - CONFIG.DSP * 2,
       innerDepth: this.cabinet.depth - CONFIG.HDF,
       workHeight: this.cabinet.height - this.cabinet.base - CONFIG.DSP
@@ -786,7 +789,6 @@ export class App {
   render2D() {
     const ctx = this.canvas.ctx;
     const { size, scale, offset } = this.canvas;
-    const calc = this.getInnerDimensions();
     
     ctx.clearRect(0, 0, size, size);
     ctx.save();
@@ -799,8 +801,8 @@ export class App {
     ctx.fillRect(
       CONFIG.DSP * scale,
       toY(this.cabinet.height - CONFIG.DSP),
-      calc.innerWidth * scale,
-      calc.workHeight * scale
+      this.calc.innerWidth * scale,
+      this.calc.workHeight * scale
     );
     
     // Корпус
@@ -811,17 +813,17 @@ export class App {
     ctx.fillRect((this.cabinet.width - CONFIG.DSP) * scale, toY(this.cabinet.height), CONFIG.DSP * scale, this.cabinet.height * scale);
     
     // Дно
-    ctx.fillRect(CONFIG.DSP * scale, toY(this.cabinet.base), calc.innerWidth * scale, CONFIG.DSP * scale);
+    ctx.fillRect(CONFIG.DSP * scale, toY(this.cabinet.base), this.calc.innerWidth * scale, CONFIG.DSP * scale);
     
     // Крыша
-    ctx.fillRect(CONFIG.DSP * scale, toY(this.cabinet.height), calc.innerWidth * scale, CONFIG.DSP * scale);
+    ctx.fillRect(CONFIG.DSP * scale, toY(this.cabinet.height), this.calc.innerWidth * scale, CONFIG.DSP * scale);
     
     // Цоколь
     ctx.fillStyle = '#654321';
     ctx.fillRect(
       CONFIG.DSP * scale,
       toY(this.cabinet.base - CONFIG.DSP),
-      calc.innerWidth * scale,
+      this.calc.innerWidth * scale,
       (this.cabinet.base - CONFIG.DSP) * scale
     );
     
