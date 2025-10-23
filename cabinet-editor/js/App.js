@@ -205,6 +205,12 @@ export class App {
       this.interaction.dragging = this.findPanelAt(coords);
       if (this.interaction.dragging) {
         this.interaction.originalPos = this.interaction.dragging.mainPosition;
+        
+        // Для боковин сохраняем состояние ДО начала изменений
+        // Так как перемещение боковины изменяет bounds всех полок
+        if (this.interaction.dragging.type === 'side') {
+          this.saveHistory();
+        }
       }
     } else if (this.mode === 'delete') {
       const panel = this.findPanelAt(coords);
