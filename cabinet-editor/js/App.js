@@ -26,7 +26,8 @@ export class App {
     this.interaction = {
       dragging: null,
       start: null,
-      hasMoved: false
+      hasMoved: false,
+      boundsSnapshot: null  // Снапшот bounds для логирования
     };
     
     // История
@@ -75,6 +76,9 @@ export class App {
     if (window.innerWidth > 1024) {
       setTimeout(() => this.initViewer3D(), 100);
     }
+    
+    // Для отладки - доступно в консоли через window.app
+    window.app = this;
   }
   
   setupEvents() {
@@ -95,6 +99,12 @@ export class App {
     addListener('.clear-btn', 'click', () => this.clearAll());
     addListener('#undo-btn', 'click', () => this.undo());
     addListener('#redo-btn', 'click', () => this.redo());
+    addListener('#clear-history-btn', 'click', () => this.clearHistoryLog());
+    addListener('#collapse-history-btn', 'click', () => this.toggleHistoryCollapse());
+    addListener('#copy-history-btn', 'click', () => this.copyHistoryLogs());
+    
+    // Перетаскивание панели истории
+    this.setupHistoryDrag();
     
     // Canvas события
     const canvas = this.canvas.element;
@@ -200,16 +210,24 @@ export class App {
   startInteraction(coords) {
     this.interaction.start = coords;
     this.interaction.hasMoved = false;
+    this.interaction.boundsSnapshot = null;  // Сбрасываем снапшот
     
     if (this.mode === 'move') {
       this.interaction.dragging = this.findPanelAt(coords);
       if (this.interaction.dragging) {
         this.interaction.originalPos = this.interaction.dragging.mainPosition;
         
-        // Для боковин сохраняем состояние ДО начала изменений
-        // Так как перемещение боковины изменяет bounds всех полок
+        // Если тянем боковину - сохраняем bounds всех полок
         if (this.interaction.dragging.type === 'side') {
-          this.saveHistory();
+          this.interaction.boundsSnapshot = new Map();
+          for (let panel of this.panels.values()) {
+            if (panel.isHorizontal) {
+              this.interaction.boundsSnapshot.set(panel.id, {
+                startX: panel.bounds.startX,
+                endX: panel.bounds.endX
+              });
+            }
+          }
         }
       }
     } else if (this.mode === 'delete') {
@@ -254,7 +272,12 @@ export class App {
       }
     }
     
-    this.interaction = { dragging: null, start: null, hasMoved: false };
+    this.interaction = { 
+      dragging: null, 
+      start: null, 
+      hasMoved: false,
+      boundsSnapshot: null  // Очищаем снапшот
+    };
   }
   
   findPanelAt(coords) {
@@ -413,6 +436,8 @@ export class App {
       this.moveSide(panel, coords.x);
       return;
     }
+    
+    const oldPos = panel.mainPosition;
     
     const newPos = panel.isHorizontal ? coords.y : coords.x;
     
@@ -752,11 +777,14 @@ export class App {
   clearAll() {
     if (this.panels.size === 0) return;
     
+    const count = this.panels.size;
+    
     for (let panel of this.panels.values()) {
       this.removeMesh(panel);
     }
     
     this.panels.clear();
+    
     this.saveHistory();
     this.render2D();
     this.updateStats();
@@ -782,8 +810,296 @@ export class App {
     return deserialized;
   }
   
+  // ========== ЛОГИРОВАНИЕ ИСТОРИИ ==========
+  setupHistoryDrag() {
+    const historyPanel = document.getElementById('history-panel');
+    const historyHeader = document.getElementById('history-header');
+    if (!historyPanel || !historyHeader) return;
+    
+    let isDragging = false;
+    let currentX, currentY, initialX, initialY;
+    
+    const dragStart = (e) => {
+      // Не драгать если кликнули по кнопке
+      if (e.target.closest('button')) return;
+      
+      // Только на desktop
+      if (window.innerWidth <= 1024) return;
+      
+      isDragging = true;
+      
+      const rect = historyPanel.getBoundingClientRect();
+      initialX = rect.left;
+      initialY = rect.top;
+      currentX = e.clientX;
+      currentY = e.clientY;
+      
+      historyPanel.style.transition = 'none';
+    };
+    
+    const drag = (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      
+      const dx = e.clientX - currentX;
+      const dy = e.clientY - currentY;
+      
+      const newX = initialX + dx;
+      const newY = initialY + dy;
+      
+      // Ограничения по экрану
+      const maxX = window.innerWidth - historyPanel.offsetWidth;
+      const maxY = window.innerHeight - historyPanel.offsetHeight;
+      
+      const boundedX = Math.max(0, Math.min(newX, maxX));
+      const boundedY = Math.max(0, Math.min(newY, maxY));
+      
+      historyPanel.style.left = boundedX + 'px';
+      historyPanel.style.top = boundedY + 'px';
+      historyPanel.style.right = 'auto';
+      historyPanel.style.bottom = 'auto';
+    };
+    
+    const dragEnd = () => {
+      isDragging = false;
+      historyPanel.style.transition = '';
+    };
+    
+    historyHeader.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', dragEnd);
+  }
+  
+  toggleHistoryCollapse() {
+    const historyPanel = document.getElementById('history-panel');
+    const collapseBtn = document.getElementById('collapse-history-btn');
+    if (!historyPanel || !collapseBtn) return;
+    
+    historyPanel.classList.toggle('collapsed');
+    collapseBtn.textContent = historyPanel.classList.contains('collapsed') ? '▲' : '▼';
+  }
+  
+  copyHistoryLogs() {
+    const historyContent = document.getElementById('history-content');
+    if (!historyContent) return;
+    
+    const entries = historyContent.querySelectorAll('.history-entry');
+    if (entries.length === 0) {
+      this.updateStatus('История пуста');
+      return;
+    }
+    
+    let logText = 'ИСТОРИЯ ИЗМЕНЕНИЙ CABINET EDITOR\n';
+    logText += '='.repeat(50) + '\n\n';
+    
+    entries.forEach((entry, index) => {
+      const time = entry.querySelector('.history-time')?.textContent || '';
+      const action = entry.querySelector('.history-action')?.textContent || '';
+      const details = entry.querySelector('.history-details');
+      
+      logText += `${time} ${action}\n`;
+      
+      if (details) {
+        const changes = details.querySelectorAll('.history-change');
+        changes.forEach(change => {
+          // Удаляем HTML теги и форматируем текст
+          const text = change.textContent
+            .replace(/\s+/g, ' ')
+            .trim();
+          logText += `  • ${text}\n`;
+        });
+      }
+      
+      logText += '\n';
+    });
+    
+    logText += '='.repeat(50) + '\n';
+    logText += `Всего записей: ${entries.length}\n`;
+    logText += `Дата: ${new Date().toLocaleString('ru-RU')}\n`;
+    
+    // Копируем в буфер обмена
+    navigator.clipboard.writeText(logText).then(() => {
+      this.updateStatus('✅ Логи скопированы в буфер обмена!');
+    }).catch(err => {
+      console.error('Ошибка копирования:', err);
+      this.updateStatus('❌ Ошибка копирования');
+    });
+  }
+  
+  logToHistory(action, details) {
+    const historyContent = document.getElementById('history-content');
+    if (!historyContent) return;
+    
+    // Удаляем сообщение "История пуста"
+    const emptyMsg = historyContent.querySelector('.history-empty');
+    if (emptyMsg) emptyMsg.remove();
+    
+    // Создаем новую запись
+    const entry = document.createElement('div');
+    entry.className = `history-entry ${action}`;
+    
+    const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    
+    let actionText = '';
+    let actionIcon = '';
+    
+    switch(action) {
+      case 'save':
+        actionIcon = '💾';
+        actionText = 'Сохранено';
+        break;
+      case 'undo':
+        actionIcon = '⏮️';
+        actionText = 'Отменено';
+        break;
+      case 'redo':
+        actionIcon = '⏭️';
+        actionText = 'Возвращено';
+        break;
+    }
+    
+    let html = `
+      <span class="history-time">[${time}]</span>
+      <span class="history-action">${actionIcon} ${actionText}</span>
+    `;
+    
+    // Добавляем детали изменений
+    if (details && details.length > 0) {
+      html += '<div class="history-details">';
+      details.forEach(detail => {
+        html += `<div class="history-change">${detail}</div>`;
+      });
+      html += '</div>';
+    }
+    
+    entry.innerHTML = html;
+    historyContent.insertBefore(entry, historyContent.firstChild);
+    
+    // Ограничиваем количество записей
+    const entries = historyContent.querySelectorAll('.history-entry');
+    if (entries.length > 50) {
+      entries[entries.length - 1].remove();
+    }
+    
+    // Авто-скролл вверх к новой записи
+    historyContent.scrollTop = 0;
+  }
+  
+  clearHistoryLog() {
+    const historyContent = document.getElementById('history-content');
+    if (!historyContent) return;
+    
+    historyContent.innerHTML = '<div class="history-empty">История пуста</div>';
+  }
+  
+  compareStatesForLog(oldState, newState) {
+    const changes = [];
+    
+    // Проверяем изменение размеров шкафа
+    if (oldState && newState) {
+      if (oldState.cabinet && newState.cabinet) {
+        const oldWidth = oldState.cabinet.width;
+        const newWidth = newState.cabinet.width;
+        
+        if (Math.abs(oldWidth - newWidth) > 0.1) {
+          const diff = newWidth - oldWidth;
+          const diffClass = diff > 0 ? '' : 'negative';
+          const diffText = diff > 0 ? `+${Math.round(diff)}` : Math.round(diff);
+          
+          changes.push(`
+            <span>Ширина шкафа:</span>
+            <span class="history-change-value">${Math.round(oldWidth)}мм</span>
+            <span class="history-change-arrow">→</span>
+            <span class="history-change-value">${Math.round(newWidth)}мм</span>
+            <span class="history-change-diff ${diffClass}">(${diffText}мм)</span>
+          `);
+        }
+      }
+      
+      // Проверяем изменения панелей
+      const oldPanels = new Map(oldState.panels.map(p => [p.id, p]));
+      const newPanels = new Map(newState.panels.map(p => [p.id, p]));
+      
+      // Новые панели
+      const added = newState.panels.filter(p => !oldPanels.has(p.id));
+      if (added.length > 0) {
+        added.forEach(p => {
+          const icon = p.type === 'shelf' ? '📏' : '📐';
+          const typeName = p.type === 'shelf' ? 'Полка' : 'Разделитель';
+          changes.push(`<span>${icon} Добавлен: ${typeName}</span>`);
+        });
+      }
+      
+      // Удаленные панели
+      const removed = oldState.panels.filter(p => !newPanels.has(p.id));
+      if (removed.length > 0) {
+        removed.forEach(p => {
+          const icon = p.type === 'shelf' ? '📏' : '📐';
+          const typeName = p.type === 'shelf' ? 'Полка' : 'Разделитель';
+          changes.push(`<span>${icon} Удален: ${typeName}</span>`);
+        });
+      }
+      
+      // Измененные размеры панелей
+      for (let [id, oldPanel] of oldPanels) {
+        const newPanel = newPanels.get(id);
+        if (!newPanel) continue;
+        
+        const oldSize = oldPanel.type === 'shelf' 
+          ? oldPanel.bounds.endX - oldPanel.bounds.startX
+          : oldPanel.bounds.endY - oldPanel.bounds.startY;
+        const newSize = newPanel.type === 'shelf'
+          ? newPanel.bounds.endX - newPanel.bounds.startX
+          : newPanel.bounds.endY - newPanel.bounds.startY;
+        
+        if (Math.abs(oldSize - newSize) > 0.1) {
+          const icon = oldPanel.type === 'shelf' ? '📏' : '📐';
+          const diff = newSize - oldSize;
+          const diffClass = diff > 0 ? '' : 'negative';
+          const diffText = diff > 0 ? `+${Math.round(diff)}` : Math.round(diff);
+          
+          changes.push(`
+            <span>${icon} ${id}:</span>
+            <span class="history-change-value">${Math.round(oldSize)}мм</span>
+            <span class="history-change-arrow">→</span>
+            <span class="history-change-value">${Math.round(newSize)}мм</span>
+            <span class="history-change-diff ${diffClass}">(${diffText}мм)</span>
+          `);
+        }
+      }
+    }
+    
+    return changes;
+  }
+  
   // ========== ИСТОРИЯ ==========
   saveHistory() {
+    // Получаем предыдущее состояние для сравнения
+    // Если есть boundsSnapshot (перемещение боковины), создаем искусственное состояние
+    let prevState;
+    if (this.interaction.boundsSnapshot && this.history.index >= 0) {
+      // Используем снапшот bounds ДО изменения
+      const historicalState = this.history.states[this.history.index];
+      prevState = {
+        cabinet: historicalState.cabinet,
+        panels: historicalState.panels.map(p => {
+          // Если есть снапшот для этой панели, используем его
+          const snapshot = this.interaction.boundsSnapshot.get(p.id);
+          if (snapshot && p.type === 'shelf') {
+            return {
+              ...p,
+              bounds: {
+                startX: snapshot.startX,
+                endX: snapshot.endX
+              }
+            };
+          }
+          return p;
+        })
+      };
+    } else {
+      prevState = this.history.index >= 0 ? this.history.states[this.history.index] : null;
+    }
     const state = {
       cabinet: {
         width: this.cabinet.width,
@@ -814,18 +1130,44 @@ export class App {
     
     this.updateHistoryButtons();
     this.scheduleSave();
+    
+    // Логируем изменения
+    const changes = this.compareStatesForLog(prevState, state);
+    if (changes.length > 0) {
+      this.logToHistory('save', changes);
+    }
   }
   
   undo() {
     if (this.history.index <= 0) return;
+    
+    const currentState = this.history.states[this.history.index];
+    const prevState = this.history.states[this.history.index - 1];
+    
     this.history.index--;
-    this.restoreState(this.history.states[this.history.index]);
+    this.restoreState(prevState);
+    
+    // Логируем отмену: сравниваем ТЕКУЩЕЕ состояние из истории с ПРЕДЫДУЩИМ
+    const changes = this.compareStatesForLog(currentState, prevState);
+    if (changes.length > 0) {
+      this.logToHistory('undo', changes);
+    }
   }
   
   redo() {
     if (this.history.index >= this.history.states.length - 1) return;
+    
+    const currentState = this.history.states[this.history.index];
+    const nextState = this.history.states[this.history.index + 1];
+    
     this.history.index++;
-    this.restoreState(this.history.states[this.history.index]);
+    this.restoreState(nextState);
+    
+    // Логируем повтор: сравниваем ТЕКУЩЕЕ состояние с СЛЕДУЮЩИМ
+    const changes = this.compareStatesForLog(currentState, nextState);
+    if (changes.length > 0) {
+      this.logToHistory('redo', changes);
+    }
   }
   
   restoreState(state) {

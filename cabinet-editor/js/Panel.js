@@ -6,8 +6,8 @@ export class Panel {
   constructor(type, id, position, bounds, connections = {}) {
     this.type = type;
     this.id = id;
-    this.position = position;
-    this.bounds = bounds;
+    this.position = { ...position };  // Копия position
+    this.bounds = { ...bounds };  // Копия bounds - критично для истории!
     this.connections = connections;
     this.ribs = [];  // Массив ребер жесткости для полок [{startX, endX}, ...]
     
